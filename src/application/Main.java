@@ -11,12 +11,11 @@ import javafx.beans.binding.Bindings;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
@@ -42,6 +41,7 @@ public class Main extends Application {
 		Group root = new Group();
 		BorderPane borderPane = new BorderPane();
 		TabPane tb = new TabPane();
+		tb.setTabMaxWidth(100);
 		tb.setPrefSize(1200, 630);
 //		tb.setSide(Side.TOP);
 		Createfirsttab(tb);
@@ -69,6 +69,64 @@ public class Main extends Application {
 		menubar.getMenus().add(menu);
 
 		ScrollPane sp = new ScrollPane();
+		final TextField urlField = new TextField("http://");
+		// WebView - to display, browse web pages.
+		WebView webView = new WebView();
+		webView.setPrefHeight(630);
+		webView.setPrefWidth(1180);
+		final WebEngine webEngine = webView.getEngine();
+		WebHistory history = webEngine.getHistory();
+
+		HBox hBox = new HBox(2);
+		hBox.getChildren().setAll(backButton, forwardButton, reloadButton, urlField, goButton, menubar);
+		HBox.setHgrow(urlField, Priority.ALWAYS);
+
+		final VBox vBox = new VBox(1);
+		sp.setContent(webView);
+		vBox.getChildren().setAll(hBox, sp);
+		VBox.setVgrow(webView, Priority.ALWAYS);
+
+		backButton.setOnAction(e -> {
+			ObservableList<WebHistory.Entry> entries = history.getEntries();
+			history.go(-1);
+			urlField.setText(entries.get(history.getCurrentIndex()).getUrl());
+		});
+
+		forwardButton.setOnAction(e -> {
+			ObservableList<WebHistory.Entry> entries = history.getEntries();
+			history.go(+1);
+			urlField.setText(entries.get(history.getCurrentIndex()).getUrl());
+		});
+
+		urlField.setOnAction(e -> {
+			webEngine.load(
+					urlField.getText().startsWith("http://") ? urlField.getText() : "http://" + urlField.getText());
+		});
+
+		goButton.setOnAction(e -> {
+			webEngine.load(
+					urlField.getText().startsWith("http://") ? urlField.getText() : "http://" + urlField.getText());
+		});
+
+		reloadButton.setOnAction(e -> {
+			webEngine.reload();
+		});
+
+		menuItemHome.setOnAction(e -> {
+			webEngine.load("https://www.google.com");
+		});
+
+		menuItemDownload.setOnAction(e -> {
+			showDownloadPage(primaryStage);
+		});
+
+		menuItemHistory.setOnAction(e -> {
+			showHistoryPage(primaryStage, history, webEngine);
+		});
+
+		menuItemAbout.setOnAction(e -> {
+			showAboutPage(primaryStage);
+		});
 
 		tb.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<Tab>() {
 
@@ -77,15 +135,7 @@ public class Main extends Application {
 				if (newSelectedTab == newtab) {
 					Tab tab = new Tab();
 					tab.setText("New tab");
-					// WebView - to display, browse web pages.
-					WebView webView = new WebView();
-					webView.setPrefHeight(630);
-					webView.setPrefWidth(1180);
-					final WebEngine webEngine = webView.getEngine();
 					// webEngine.load(DEFAULT_URL);
-					WebHistory history = webEngine.getHistory();
-
-					final TextField urlField = new TextField("http://");
 
 					webEngine.locationProperty().addListener(new ChangeListener<String>() {
 						@Override
@@ -95,97 +145,14 @@ public class Main extends Application {
 							tab.setText(urlField.getText());
 						}
 					});
-					// Action definition for the Button Go.
-					EventHandler<ActionEvent> goAction = new EventHandler<ActionEvent>() {
-						@Override
-						public void handle(ActionEvent event) {
-							webEngine.load(urlField.getText().startsWith("http://") ? urlField.getText()
-									: "http://" + urlField.getText());
-						}
-					};
-					// Action reload page
-					EventHandler<ActionEvent> reloadPageAction = new EventHandler<ActionEvent>() {
-						@Override
-						public void handle(ActionEvent arg0) {
-							webEngine.reload();
-						}
-					};
-					// Action back
-					EventHandler<ActionEvent> backAction = new EventHandler<ActionEvent>() {
-						@Override
-						public void handle(ActionEvent arg0) {
-							ObservableList<WebHistory.Entry> entries = history.getEntries();
-							history.go(-1);
-							urlField.setText(entries.get(history.getCurrentIndex()).getUrl());
-						}
-					};
-					// Action forward
-					EventHandler<ActionEvent> forwardAction = new EventHandler<ActionEvent>() {
-						@Override
-						public void handle(ActionEvent arg0) {
-							ObservableList<WebHistory.Entry> entries = history.getEntries();
-							history.go(+1);
-							urlField.setText(entries.get(history.getCurrentIndex()).getUrl());
-						}
-					};
-					// Action back to home
-					EventHandler<ActionEvent> backToHomeAction = new EventHandler<ActionEvent>() {
-						@Override
-						public void handle(ActionEvent event) {
-							webEngine.load("https://www.google.com");
-						}
-					};
-					// Action show scene download
-					EventHandler<ActionEvent> showDownloadScene = new EventHandler<ActionEvent>() {
-						@Override
-						public void handle(ActionEvent arg0) {
-							showDownloadPage(primaryStage);
-						}
-					};
-					// Action show scene download
-					EventHandler<ActionEvent> showHistoryScene = new EventHandler<ActionEvent>() {
-						@Override
-						public void handle(ActionEvent arg0) {
-							connectDB();
-						}
-					};
-					// Action show scene about
-					EventHandler<ActionEvent> showAboutScene = new EventHandler<ActionEvent>() {
-						@Override
-						public void handle(ActionEvent arg0) {
-							showAboutPage(primaryStage);
-						}
-					};
-
-					backButton.setOnAction(backAction);
-					forwardButton.setOnAction(forwardAction);
-					urlField.setOnAction(goAction);
-					goButton.setOnAction(goAction);
-					reloadButton.setOnAction(reloadPageAction);
-					menuItemHome.setOnAction(backToHomeAction);
-					menuItemDownload.setOnAction(showDownloadScene);
-					menuItemHistory.setOnAction(showHistoryScene);
-					menuItemAbout.setOnAction(showAboutScene);
-
-					HBox hBox = new HBox(2);
-					hBox.getChildren().setAll(backButton, forwardButton, reloadButton, urlField, goButton, menubar);
-					HBox.setHgrow(urlField, Priority.ALWAYS);
-
-					final VBox vBox = new VBox(1);
-					sp.setContent(webView);
-					vBox.getChildren().setAll(hBox, sp);
-					VBox.setVgrow(webView, Priority.ALWAYS);
 
 					tab.setContent(vBox);
 					final ObservableList<Tab> tabs = tb.getTabs();
 					tab.closableProperty().bind(Bindings.size(tabs).greaterThan(2));
 					tabs.add(tabs.size() - 1, tab);
-
 					tb.getSelectionModel().select(tab);
-
 				}
 			}
-
 		});
 
 		borderPane.setCenter(tb);
@@ -223,7 +190,6 @@ public class Main extends Application {
 		// New window (Stage)
 		Stage newWindow = new Stage();
 		newWindow.getIcons().add(new Image(Main.class.getResourceAsStream("/file.png")));
-		newWindow.setTitle("Download");
 		newWindow.setScene(secondScene);
 
 		// Set position of second window, related to primary window.
@@ -265,6 +231,30 @@ public class Main extends Application {
 		newStage.show();
 	}
 
+	private void showHistoryPage(Stage stage, WebHistory history, WebEngine webEngine) {
+		ObservableList<WebHistory.Entry> entries = history.getEntries();
+		ListView<String> listUrl = new ListView<>();
+		String url;
+		for (WebHistory.Entry entry : entries) {
+			url = (entry.getUrl() + " " + entry.getLastVisitedDate() + "\n");
+			listUrl.getItems().addAll(url);
+		}
+
+		VBox vBox = new VBox(10);
+		vBox.getChildren().setAll(listUrl);
+		Scene newScene = new Scene(vBox, 730, 400);
+
+		Stage newStage = new Stage();
+		newStage.getIcons().add(new Image(Main.class.getResourceAsStream("/history.png")));
+		newStage.setTitle("History");
+		newStage.setScene(newScene);
+
+		newStage.setX(stage.getX() + 200);
+		newStage.setY(stage.getY() + 100);
+
+		newStage.show();
+	}
+
 	private void downloadFile(String link, String namefile, Label toast) {
 		try {
 			URL url = new URL(link);
@@ -283,26 +273,6 @@ public class Main extends Application {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-	}
-
-	private void connectDB() {
-//		String DATABASE_URL = "jdbc:mysql://localhost:3310/javafx";
-//		String DATABASE_USERNAME = "root";
-//		String DATABASE_PASSWORD = "bmquang432002";
-//		Connection connection = null;
-//
-//		try {
-//			connection = DriverManager.getConnection(DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD);
-//			if (connection != null) {
-//				System.out.println("Connect error!");
-//			} else {
-//				System.out.println("Connect complete!");
-//			}
-//
-//		} catch (SQLException e) {
-//			e.printStackTrace();
-//		}
-
 	}
 
 	public static void main(String[] args) {
